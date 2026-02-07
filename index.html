@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>⛏️ Mining Clicker</title>
+
+  <!-- Minecraft-style font -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: #3b6e22;
+      font-family: 'Press Start 2P', cursive;
+      color: #fff;
+      text-align: center;
+      padding-top: 40px;
+    }
+
+    h1, h2, h3 {
+      margin: 20px;
+    }
+
+    button {
+      background: #8b8b8b;
+      border: 4px solid #555;
+      padding: 15px 20px;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    button:hover {
+      background: #a0a0a0;
+    }
+
+    .box {
+      background: #2f4f1f;
+      border: 4px solid #1e3314;
+      padding: 20px;
+      margin: 20px auto;
+      width: 320px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>⛏️ Mining Clicker</h1>
+
+  <div class="box">
+    <h2>Coins: <span id="coins">0</span></h2>
+    <h3>Per Click: <span id="cpc">1</span></h3>
+    <h3>Per Second: <span id="cps">0</span></h3>
+    <button onclick="mine()">MINE</button>
+  </div>
+
+  <div class="box">
+    <h3>Upgrades</h3>
+    <button onclick="buyPickaxe()">
+      Better Pickaxe (Cost: <span id="pickCost">10</span>)
+    </button>
+    <br>
+    <button onclick="buyMiner()">
+      Auto Miner (Cost: <span id="minerCost">25</span>)
+    </button>
+  </div>
+
+  <script>
+    // LOAD SAVED DATA OR DEFAULTS
+    let coins = Number(localStorage.getItem("coins")) || 0;
+    let coinsPerClick = Number(localStorage.getItem("cpc")) || 1;
+    let coinsPerSecond = Number(localStorage.getItem("cps")) || 0;
+    let pickaxeCost = Number(localStorage.getItem("pickCost")) || 10;
+    let minerCost = Number(localStorage.getItem("minerCost")) || 25;
+
+    function mine() {
+      coins += coinsPerClick;
+      update();
+    }
+
+    function buyPickaxe() {
+      if (coins >= pickaxeCost) {
+        coins -= pickaxeCost;
+        coinsPerClick++;
+        pickaxeCost = Math.floor(pickaxeCost * 1.5);
+        update();
+      }
+    }
+
+    function buyMiner() {
+      if (coins >= minerCost) {
+        coins -= minerCost;
+        coinsPerSecond++;
+        minerCost = Math.floor(minerCost * 1.6);
+        update();
+      }
+    }
+
+    // AUTO MINING
+    setInterval(() => {
+      coins += coinsPerSecond;
+      update();
+    }, 1000);
+
+    function update() {
+      document.getElementById("coins").innerText = coins;
+      document.getElementById("cpc").innerText = coinsPerClick;
+      document.getElementById("cps").innerText = coinsPerSecond;
+      document.getElementById("pickCost").innerText = pickaxeCost;
+      document.getElementById("minerCost").innerText = minerCost;
+
+      // SAVE GAME
+      localStorage.setItem("coins", coins);
+      localStorage.setItem("cpc", coinsPerClick);
+      localStorage.setItem("cps", coinsPerSecond);
+      localStorage.setItem("pickCost", pickaxeCost);
+      localStorage.setItem("minerCost", minerCost);
+    }
+
+    update();
+  </script>
+
+</body>
+</html>
+
