@@ -252,7 +252,16 @@ document.addEventListener("touchmove", e => {
   player.style.left = Math.max(0, Math.min(rect.width - 40, e.touches[0].clientX - rect.left - 20)) + "px";
 });
 
-startBtn.onclick = startGame;
+startBtn.onclick = () => {
+  // Unlock audio (browser requirement)
+  hitSound.volume = 0.4;
+  scoreSound.volume = 0.4;
+  hitSound.play().then(() => hitSound.pause());
+  scoreSound.play().then(() => scoreSound.pause());
+
+  startGame();
+};
+
 </script>
 
 </body>
