@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dodge Game</title>
+<title>MXV Dodge</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -14,9 +14,11 @@ body {
   text-align: center;
 }
 
+h1 { margin: 10px 0; }
+
 #game {
   position: relative;
-  width: 95vw;
+  width: 90vw;
   max-width: 400px;
   height: 70vh;
   max-height: 500px;
@@ -46,9 +48,9 @@ body {
   border-radius: 8px;
 }
 
-button {
-  margin: 10px;
-  padding: 12px 18px;
+#startBtn {
+  margin: 15px;
+  padding: 12px 20px;
   font-size: 18px;
   border-radius: 10px;
   border: none;
@@ -60,130 +62,100 @@ button {
 
 <body>
 
-<h2>🚨 Dodge Game</h2>
-Score: <span id="score">0</span> |
-High: <span id="high">0</span>
+<h1>🚨 Dodge</h1>
+Score: <span id="score">0</span>
 
 <div id="game">
   <div id="player"></div>
 </div>
 
-<button id="start">Start</button>
+<button id="startBtn">Start</button>
 
 <script>
 const game = document.getElementById("game");
 const player = document.getElementById("player");
 const scoreEl = document.getElementById("score");
-const highEl = document.getElementById("high");
+const startBtn = document.getElementById("startBtn");
 
-let ctx;
-let running = false;
 let obstacles = [];
-let lastSpawn = 0;
-let lastTime = 0;
+let running = false;
 let score = 0;
-let high = localStorage.getItem("mxv_high") || 0;
-highEl.textContent = high;
-
-// 🔊 Web Audio (ALWAYS WORKS)
-function beep(freq, time) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.frequency.value = freq;
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start();
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + time);
-  osc.stop(ctx.currentTime + time);
-}
+let spawnTimer = 0;
+let lastTime = 0;
 
 function startGame() {
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
-  running = true;
-  score = 0;
-  obstacles.forEach(o => o.el.remove());
+  obstacles.forEach(o => o.remove());
   obstacles = [];
-  lastSpawn = 0;
+  score = 0;
+  scoreEl.textContent = score;
+  running = true;
+  spawnTimer = 0;
   lastTime = performance.now();
   requestAnimationFrame(loop);
 }
 
-function loop(t) {
+function loop(time) {
   if (!running) return;
-  const delta = t - lastTime;
-  lastTime = t;
+  const delta = time - lastTime;
+  lastTime = time;
 
-  // spawn
-  lastSpawn += delta;
-  if (lastSpawn > 900) {
-    spawn();
-    lastSpawn = 0;
+  spawnTimer += delta;
+  if (spawnTimer > 900) {
+    spawnObstacle();
+    spawnTimer = 0;
   }
 
   obstacles.forEach((o, i) => {
-    o.y += 0.15 * delta;
-    o.el.style.top = o.y + "px";
+    const y = o.offsetTop + 0.2 * delta;
+    o.style.top = y + "px";
 
-    if (collide(player, o.el)) {
-      beep(120, 0.3);
-      end();
+    if (collision(player, o)) {
+      running = false;
     }
 
-    if (o.y > game.clientHeight) {
-      o.el.remove();
+    if (y > game.clientHeight) {
+      o.remove();
       obstacles.splice(i, 1);
       score++;
       scoreEl.textContent = score;
-      beep(600, 0.05);
     }
   });
 
   requestAnimationFrame(loop);
 }
 
-function spawn() {
-  const el = document.createElement("div");
-  el.className = "obstacle";
-  el.style.left = Math.random() * (game.clientWidth - 40) + "px";
-  el.style.top = "0px";
-  game.appendChild(el);
-  obstacles.push({ el, y: 0 });
+function spawnObstacle() {
+  const o = document.createElement("div");
+  o.className = "obstacle";
+  o.style.left = Math.random() * (game.clientWidth - 40) + "px";
+  o.style.top = "0px";
+  game.appendChild(o);
+  obstacles.push(o);
 }
 
-function end() {
-  running = false;
-  if (score > high) {
-    high = score;
-    localStorage.setItem("mxv_high", high);
-    highEl.textContent = high;
-  }
-}
-
-function collide(a, b) {
+function collision(a, b) {
   const r1 = a.getBoundingClientRect();
   const r2 = b.getBoundingClientRect();
   return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
 }
 
-// controls
-document.getElementById("start").onclick = startGame;
-
-document.addEventListener("touchstart", e => {
-  if (!running) return;
-  const x = e.touches[0].clientX;
-  const rect = game.getBoundingClientRect();
-  player.style.left =
-    Math.max(0, Math.min(rect.width - 40, x - rect.left - 20)) + "px";
-});
-
+// Controls (mobile + desktop)
 document.addEventListener("mousemove", e => {
   if (!running) return;
   const rect = game.getBoundingClientRect();
   player.style.left =
     Math.max(0, Math.min(rect.width - 40, e.clientX - rect.left - 20)) + "px";
 });
+
+document.addEventListener("touchmove", e => {
+  if (!running) return;
+  const rect = game.getBoundingClientRect();
+  player.style.left =
+    Math.max(0, Math.min(rect.width - 40, e.touches[0].clientX - rect.left - 20)) + "px";
+});
+
+startBtn.onclick = startGame;
 </script>
 
 </body>
 </html>
-
