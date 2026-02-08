@@ -8,7 +8,7 @@
 <style>
 body {
   margin: 0;
-  background: #111;
+  background: radial-gradient(circle, #111, #000);
   color: white;
   font-family: Arial, sans-serif;
   text-align: center;
@@ -23,58 +23,71 @@ h1 { margin: 10px 0; }
   height: 70vh;
   max-height: 500px;
   margin: auto;
-  background: #222;
-  border-radius: 12px;
+  background: linear-gradient(#222, #111);
+  border-radius: 14px;
   border: 3px solid #4caf50;
   overflow: hidden;
+  box-shadow: 0 0 20px #4caf50;
 }
 
 #player {
   position: absolute;
   width: 40px;
   height: 40px;
-  background: #4caf50;
+  background: linear-gradient(#6aff6a, #2e7d32);
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   border-radius: 8px;
+  box-shadow: 0 0 10px #6aff6a;
 }
 
 .obstacle {
   position: absolute;
   width: 40px;
   height: 40px;
-  background: red;
+  background: linear-gradient(#ff5252, #b71c1c);
   border-radius: 8px;
+}
+
+.powerup {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: cyan;
+  border-radius: 50%;
+  box-shadow: 0 0 12px cyan;
 }
 
 #overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.8);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
   z-index: 10;
 }
 
-#overlay h2 { margin: 10px; }
-
 #overlay button {
-  padding: 12px 20px;
+  padding: 12px 22px;
   font-size: 18px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
   background: #2196f3;
   color: white;
+}
+
+.shield {
+  outline: 4px solid cyan;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🚨 MXV Dodge</h1>
+<h1>⚡ MXV Dodge</h1>
 Score: <span id="score">0</span> |
 High: <span id="high">0</span>
 
@@ -88,6 +101,10 @@ High: <span id="high">0</span>
   </div>
 </div>
 
+<!-- Sounds -->
+<audio id="hitSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7c8d4c2db2.mp3"></audio>
+<audio id="scoreSound" src="https://cdn.pixabay.com/download/audio/2022/02/23/audio_9c94b4c31f.mp3"></audio>
+
 <script>
 const game = document.getElementById("game");
 const player = document.getElementById("player");
@@ -98,22 +115,32 @@ const overlayTitle = document.getElementById("overlayTitle");
 const overlayText = document.getElementById("overlayText");
 const startBtn = document.getElementById("startBtn");
 
+const hitSound = document.getElementById("hitSound");
+const scoreSound = document.getElementById("scoreSound");
+
 let obstacles = [];
+let powerups = [];
 let running = false;
 let score = 0;
 let high = localStorage.getItem("mxv_dodge_high") || 0;
 let spawnTimer = 0;
-let speed = 0.25;
+let powerTimer = 0;
+let speed = 0.3;
 let lastTime = 0;
+let shield = false;
 
 highEl.textContent = high;
 
 function startGame() {
-  obstacles.forEach(o => o.remove());
+  [...obstacles, ...powerups].forEach(e => e.remove());
   obstacles = [];
+  powerups = [];
   score = 0;
-  speed = 0.25;
+  speed = 0.3;
+  shield = false;
+  player.classList.remove("shield");
   spawnTimer = 0;
+  powerTimer = 0;
   running = true;
   overlay.style.display = "none";
   scoreEl.textContent = score;
@@ -127,25 +154,50 @@ function loop(time) {
   lastTime = time;
 
   spawnTimer += delta;
-  if (spawnTimer > 900) {
+  powerTimer += delta;
+
+  if (spawnTimer > 850) {
     spawnObstacle();
     spawnTimer = 0;
   }
 
+  if (powerTimer > 8000) {
+    spawnPowerup();
+    powerTimer = 0;
+  }
+
   obstacles.forEach((o, i) => {
-    const y = o.offsetTop + speed * delta;
-    o.style.top = y + "px";
+    o.style.top = o.offsetTop + speed * delta + "px";
 
     if (collision(player, o)) {
-      gameOver();
+      if (shield) {
+        shield = false;
+        player.classList.remove("shield");
+        o.remove();
+        obstacles.splice(i, 1);
+      } else {
+        hitSound.play();
+        return gameOver();
+      }
     }
 
-    if (y > game.clientHeight) {
+    if (o.offsetTop > game.clientHeight) {
       o.remove();
       obstacles.splice(i, 1);
       score++;
+      scoreSound.play();
       scoreEl.textContent = score;
       speed += 0.01;
+    }
+  });
+
+  powerups.forEach((p, i) => {
+    p.style.top = p.offsetTop + 0.2 * delta + "px";
+    if (collision(player, p)) {
+      shield = true;
+      player.classList.add("shield");
+      p.remove();
+      powerups.splice(i, 1);
     }
   });
 
@@ -156,9 +208,16 @@ function spawnObstacle() {
   const o = document.createElement("div");
   o.className = "obstacle";
   o.style.left = Math.random() * (game.clientWidth - 40) + "px";
-  o.style.top = "0px";
   game.appendChild(o);
   obstacles.push(o);
+}
+
+function spawnPowerup() {
+  const p = document.createElement("div");
+  p.className = "powerup";
+  p.style.left = Math.random() * (game.clientWidth - 30) + "px";
+  game.appendChild(p);
+  powerups.push(p);
 }
 
 function gameOver() {
@@ -184,15 +243,13 @@ function collision(a, b) {
 document.addEventListener("mousemove", e => {
   if (!running) return;
   const rect = game.getBoundingClientRect();
-  player.style.left =
-    Math.max(0, Math.min(rect.width - 40, e.clientX - rect.left - 20)) + "px";
+  player.style.left = Math.max(0, Math.min(rect.width - 40, e.clientX - rect.left - 20)) + "px";
 });
 
 document.addEventListener("touchmove", e => {
   if (!running) return;
   const rect = game.getBoundingClientRect();
-  player.style.left =
-    Math.max(0, Math.min(rect.width - 40, e.touches[0].clientX - rect.left - 20)) + "px";
+  player.style.left = Math.max(0, Math.min(rect.width - 40, e.touches[0].clientX - rect.left - 20)) + "px";
 });
 
 startBtn.onclick = startGame;
@@ -200,4 +257,3 @@ startBtn.onclick = startGame;
 
 </body>
 </html>
-
