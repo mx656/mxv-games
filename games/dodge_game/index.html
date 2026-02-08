@@ -38,6 +38,7 @@ h1 { margin: 10px 0; }
   left: 50%;
   transform: translateX(-50%);
   border-radius: 8px;
+  transition: transform 0.1s;
 }
 
 .obstacle {
@@ -48,48 +49,72 @@ h1 { margin: 10px 0; }
   border-radius: 8px;
 }
 
-#startBtn {
-  margin: 15px;
-  padding: 12px 20px;
+#overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 10;
+}
+
+#overlay button {
+  padding: 10px 20px;
   font-size: 18px;
   border-radius: 10px;
   border: none;
   background: #2196f3;
   color: white;
 }
+
 </style>
 </head>
 
 <body>
 
 <h1>🚨 Dodge</h1>
-Score: <span id="score">0</span>
+Score: <span id="score">0</span> |
+High: <span id="high">0</span>
 
 <div id="game">
   <div id="player"></div>
-</div>
 
-<button id="startBtn">Start</button>
+  <div id="overlay">
+    <h2>Game Over</h2>
+    <p>Score: <span id="finalScore">0</span></p>
+    <button onclick="startGame()">Restart</button>
+  </div>
+</div>
 
 <script>
 const game = document.getElementById("game");
 const player = document.getElementById("player");
 const scoreEl = document.getElementById("score");
-const startBtn = document.getElementById("startBtn");
+const highEl = document.getElementById("high");
+const overlay = document.getElementById("overlay");
+const finalScoreEl = document.getElementById("finalScore");
 
 let obstacles = [];
 let running = false;
 let score = 0;
+let high = localStorage.getItem("mxv_dodge_high") || 0;
 let spawnTimer = 0;
+let speed = 0.25;
 let lastTime = 0;
+
+highEl.textContent = high;
 
 function startGame() {
   obstacles.forEach(o => o.remove());
   obstacles = [];
   score = 0;
-  scoreEl.textContent = score;
-  running = true;
+  speed = 0.25;
   spawnTimer = 0;
+  running = true;
+  overlay.style.display = "none";
+  scoreEl.textContent = score;
   lastTime = performance.now();
   requestAnimationFrame(loop);
 }
@@ -106,11 +131,11 @@ function loop(time) {
   }
 
   obstacles.forEach((o, i) => {
-    const y = o.offsetTop + 0.2 * delta;
+    const y = o.offsetTop + speed * delta;
     o.style.top = y + "px";
 
     if (collision(player, o)) {
-      running = false;
+      gameOver();
     }
 
     if (y > game.clientHeight) {
@@ -118,6 +143,7 @@ function loop(time) {
       obstacles.splice(i, 1);
       score++;
       scoreEl.textContent = score;
+      speed += 0.01;
     }
   });
 
@@ -133,13 +159,27 @@ function spawnObstacle() {
   obstacles.push(o);
 }
 
+function gameOver() {
+  running = false;
+  overlay.style.display = "flex";
+  finalScoreEl.textContent = score;
+  player.style.transform = "scale(1.3)";
+  setTimeout(() => player.style.transform = "scale(1)", 200);
+
+  if (score > high) {
+    high = score;
+    localStorage.setItem("mxv_dodge_high", high);
+    highEl.textContent = high;
+  }
+}
+
 function collision(a, b) {
   const r1 = a.getBoundingClientRect();
   const r2 = b.getBoundingClientRect();
   return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
 }
 
-// Controls (mobile + desktop)
+// Controls
 document.addEventListener("mousemove", e => {
   if (!running) return;
   const rect = game.getBoundingClientRect();
@@ -153,8 +193,6 @@ document.addEventListener("touchmove", e => {
   player.style.left =
     Math.max(0, Math.min(rect.width - 40, e.touches[0].clientX - rect.left - 20)) + "px";
 });
-
-startBtn.onclick = startGame;
 </script>
 
 </body>
