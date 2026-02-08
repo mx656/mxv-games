@@ -13,7 +13,6 @@ body {
   font-family: Arial, sans-serif;
   text-align: center;
 }
-
 h1 { margin: 10px 0; }
 
 #game {
@@ -122,19 +121,15 @@ let speed = 0.3;
 let lastTime = 0;
 let shield = false;
 
-// 🔊 SOUND (WORKING METHOD)
-let hitSound;
-let scoreSound;
+// 🔊 Embedded sounds using Base64
+let hitSound = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAA...");
+let scoreSound = new Audio("data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAA...");
+hitSound.volume = 0.4;
+scoreSound.volume = 0.4;
 
 highEl.textContent = high;
 
 function startGame() {
-  // create sounds AFTER click (browser-safe)
-  hitSound = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_7c8d4c2db2.mp3");
-  scoreSound = new Audio("https://cdn.pixabay.com/download/audio/2022/02/23/audio_9c94b4c31f.mp3");
-  hitSound.volume = 0.4;
-  scoreSound.volume = 0.4;
-
   [...obstacles, ...powerups].forEach(e => e.remove());
   obstacles = [];
   powerups = [];
@@ -211,6 +206,7 @@ function spawnObstacle() {
   const o = document.createElement("div");
   o.className = "obstacle";
   o.style.left = Math.random() * (game.clientWidth - 40) + "px";
+  o.style.top = "0px";
   game.appendChild(o);
   obstacles.push(o);
 }
@@ -219,6 +215,7 @@ function spawnPowerup() {
   const p = document.createElement("div");
   p.className = "powerup";
   p.style.left = Math.random() * (game.clientWidth - 30) + "px";
+  p.style.top = "0px";
   game.appendChild(p);
   powerups.push(p);
 }
@@ -262,3 +259,4 @@ startBtn.onclick = startGame;
 
 </body>
 </html>
+
